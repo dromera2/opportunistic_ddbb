@@ -1748,22 +1748,22 @@ tuning_predictive <- function(com_testing, modelo, sp_names, p, i) {
 
 
 original_same_size <- function(predictions, originals) {
-  comunidad_original_mismo_tama?o<- originals %>%
+  comunidad_original_mismo_tamaño<- originals %>%
     sample_n(size=(nrow(predictions)),replace=FALSE)
 }
 
 
 #########plots##########
 
-comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tama?o) {
+comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tamaño) {
   poder_explicativo[,"validation"]<- "explanatory"
   poder_predictivo[,"validation"]<- "predictive"
   metricas_reales[,"validation"]<- "real"
-  metricas_reales_mismo_tama?o[,"validation"]<- "same_size"
+  metricas_reales_mismo_tamaño[,"validation"]<- "same_size"
   metricas_reales_misma_muestra[,"validation"]<- "same_sites"
  
   
-  mix <- rbind(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_mismo_tama?o, metricas_reales_misma_muestra)
+  mix <- rbind(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_mismo_tamaño, metricas_reales_misma_muestra)
   mix$validation <- factor(mix$validation, levels = c("explanatory", "predictive", "real", "same_size", "same_sites"))
   cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
   
