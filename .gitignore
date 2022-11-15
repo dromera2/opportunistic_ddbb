@@ -39,5 +39,5 @@ vignettes/*.pdf
 .Renviron
 
 # targets
-#_targets/
+_targets/
 
