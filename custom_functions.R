@@ -1325,7 +1325,7 @@ custom_blockCV <- function(df, n = 5, i = 100) {
                           doParallel = TRUE,
                           showPlots = TRUE)
   
-  # spatial blocking by specified range with random assignment
+#Spatial blocking by specified range with random assignment
   sb <- spatialBlock(speciesData = pb_data,
                      rasterLayer = awt,
                      theRange = sac$range, # size of the blocks
@@ -1340,12 +1340,12 @@ custom_blockCV <- function(df, n = 5, i = 100) {
 #SUbsampling the original community including false absences, i.e., 0)
 
 muestreo <- function(coo_matrix, p, sp_names = paste0("sp", 1:10), coord_names = c("x_coord", "y_coord"), var_names = c("x1", "x2"), size = FALSE, i) {
-    #Create twin matrix with NA
+  #Create twin matrix with NA
   na_matrix<- coo_matrix
   na_matrix[,]<- NA
   
   #Identificate presence points of different species by colums (vectors) and charge them into empty vector
-  sampling <- function(coo_v ,p) {
+  sampling <- function(coo_v, p) {
     na_v <- coo_v
     na_v[] <- NA
     sp <- which(coo_v == 1)
@@ -1358,15 +1358,15 @@ muestreo <- function(coo_matrix, p, sp_names = paste0("sp", 1:10), coord_names =
   na_matrix[is.na(na_matrix)] <- 0
   no_nulo<- which(apply(na_matrix, 1, sum) != 0)
   na_matrix <- cbind(coo_matrix[no_nulo, c(coord_names, "interc", var_names)], na_matrix[no_nulo, ], coo_matrix[no_nulo, "partition"])
-   colnames(na_matrix)[16] <- "partition"
-   if(size != FALSE){
-     set.seed(i)
-   sampled_matrix <- na_matrix[sample(nrow(na_matrix), size), ]
-   }else{
-     sampled_matrix <- na_matrix
-   }
-   sampled_matrix
-   }
+  colnames(na_matrix)[16] <- "partition"
+  if(size != FALSE){
+    set.seed(i)
+    sampled_matrix <- na_matrix[sample(nrow(na_matrix), size), ]
+  }else{
+    sampled_matrix <- na_matrix
+  }
+  sampled_matrix
+}
 
 #Generate artificial data, considering or not the species correlations effect
 
@@ -1396,7 +1396,7 @@ generate_artificial_data <- function(GRID.SIZE,  spCor = NULL) {
 }
 
 
-# Building and calibrating hmsc model
+#Building and calibrating hmsc model
 
 calibrate_hmsc <- function(muestreo, thin, samples, transient, nChains, nParallel, sp_names = paste0("sp", 1:10), var_names = c("x1", "x2"), coord_names = c("x_coord", "y_coord")) {
   
@@ -1425,7 +1425,7 @@ calibrate_hmsc <- function(muestreo, thin, samples, transient, nChains, nParalle
   sampleMcmc(model.pa, thin = thin, samples = samples, transient = transient, nChains = nChains, nParallel = nParallel)
 }
 
-#Checking the ess and the gd
+#Checking the effective sample size (ess) and the Gelman diagnostics (gd)
 plot.diagnostics <- function(model.pa, p) {
   mpost = convertToCodaObject(model.pa)
   
@@ -1447,7 +1447,7 @@ plot.diagnostics <- function(model.pa, p) {
   
   psrf.V = gelman.diag(mpost$V,multivariate=FALSE)$psrf
  
-  png(paste0("diagnostics_", p, ".png"))
+  png(paste0("./diagnostics/diagnostics_", p, ".png"))
   par(mfrow = c(2, 2))
   hist(ess.beta, xlab = expression("Effective sample size" ~ beta ~ ""), main=NULL, col= "light green")
   hist(ess.V, xlab = expression("Effective sample size" ~ v ~ ""))
@@ -1748,36 +1748,85 @@ tuning_predictive <- function(com_testing, modelo, sp_names, p, i) {
 
 
 original_same_size <- function(predictions, originals) {
-  comunidad_original_mismo_tama�o<- originals %>%
+  comunidad_original_mismo_tamaño<- originals %>%
     sample_n(size=(nrow(predictions)),replace=FALSE)
 }
 
 
-#########plots##########
+#########PLOTS##########
 
-comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tama�o) {
-  poder_explicativo[,"validation"]<- "explanatory"
-  poder_predictivo[,"validation"]<- "predictive"
-  metricas_reales[,"validation"]<- "real"
-  metricas_reales_mismo_tama�o[,"validation"]<- "same_size"
-  metricas_reales_misma_muestra[,"validation"]<- "same_sites"
- 
+#Plot to check the diferences between the different metrics (i.e., explanatory and predicitive power, same sample)
+
+comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tamaño) {
   
-  mix <- rbind(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_mismo_tama�o, metricas_reales_misma_muestra)
-  mix$validation <- factor(mix$validation, levels = c("explanatory", "predictive", "real", "same_size", "same_sites"))
-  cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+  metricas_reales <- metricas_reales[which(metricas_reales[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  metricas_reales_misma_muestra <- metricas_reales_misma_muestra[which(metricas_reales_misma_muestra[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  metricas_reales_mismo_tamaño <- metricas_reales_mismo_tamaño[which(metricas_reales_mismo_tamaño[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  poder_explicativo <- poder_explicativo[which(poder_explicativo[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  poder_predictivo <- poder_predictivo[which(poder_predictivo[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
   
-  ggplot(mix, aes(x=as.factor(p), y=value)) + 
-    geom_boxplot(aes(col=validation)) +
-    scale_colour_manual(values=cbPalette) +
+
+  poder_explicativo[,"validation"]<- "EXP"
+  poder_predictivo[,"validation"]<- "PRED"
+  metricas_reales[,"validation"]<- "CM01"
+  metricas_reales_mismo_tamaño[,"validation"]<- "CMss"
+  metricas_reales_misma_muestra[,"validation"]<- "EXPwfn"
+  
+  mix <- rbind(poder_explicativo, poder_predictivo, metricas_reales_misma_muestra) #bind here the metrics you want to compare
+  mix <- mix %>% mutate(variable = recode(variable, "kappa" = "Kappa"))
+  mix$validation <- factor(mix$validation, levels = c("EXP", "PRED", "EXPwfn"))
+  mix<- rename(mix, Validation = validation)
+  cbPalette <- c("#CC79A7", "#E69F00", "#56B4E9")
+                 
+  ggplot(mix, aes(x=factor(p, level = c(0.9, 0.75, 0.5, 0.25, 0.1), labels = c("90%", "75%", "50%", "25%", "10%")), y=value)) +
+    # scale_x_reverse() +
+    geom_boxplot(aes(fill=Validation)) +
+    scale_fill_manual(values=cbPalette) +
     scale_y_continuous(limits= c(0,1)) +
     facet_wrap(.~variable) +
-    xlab("subsample (p)")
+    xlab("Retention percentage") +
+    ylab("") +
+    theme_bw() 
   
-  ggplot2::ggsave("performance_figure.pdf", device = "pdf", width = 7.5, height = 3.5)
+  ggplot2::ggsave("./figures/performance_figure.pdf", device = "pdf", width = 7, height = 4.5)
 }
 
-betas_plot <- function(betas, rmas) {
+#Plot to draw the intercept and the slope of the beta parameters along retention percentage.
+
+betas_plot <- function(combined_rmas) {
+  rmas <- combined_rmas %>% pivot_longer(cols = c("intercept", "slope"))
+  rmas_sum <- rmas %>% group_by (p, variable, name) %>% summarise(mean = mean(value), sd = sd(value))
+  
+  complete_labels <- c("Intercept", "Beta x1", "Beta x2")
+  names(complete_labels) <- c("int", "x1", "x2")
+  
+  ggplot(rmas, aes(x = p*100, y = value, color = name)) +
+    scale_x_reverse() +
+    geom_jitter(width = 3, alpha = 0.3, size = 1.5) +
+    geom_line(data = rmas_sum, aes(x = p*100, y = mean), size = 0.8) +
+    geom_point(data = rmas_sum, aes(x = p*100, y = mean), size = 2.5) +
+    facet_grid(~variable, labeller = as_labeller(complete_labels)) +
+    scale_color_manual(values=c("#762a83", "#1b7837"),
+                       labels = c("Intercepts", "Slopes"),
+                       guide = "legend",
+                       name = "RMAs coeffs") +
+    xlab("Retention percentage (%)") +
+    ylab("") +
+    theme_bw() +
+    theme(legend.position="right")
+  ggplot2::ggsave("./figures/betas_figure.pdf", device = "pdf", width = 7.6, height = 2.1)
+}
+
+#Representation of the slope and intercept of the beta parameters, grouped by retention percentage
+
+supl_betas_plot <- function(betas, rmas) {
+  
+  complete_labels <- c(int = "Intercept", x1 = "Beta x1", x2 = "Beta x2")
+  names(complete_labels) <- c("int", "x1", "x2")
+  
+  p_labels <- c("10%", "25%", "50%", "75%", "90%")
+  names(p_labels) <- c(0.1, 0.25, 0.5, 0.75, 0.9)
+ 
   ggplot(betas, aes_string(x="original", y="modelo")) +
     geom_hex() +
     scale_fill_gradient2(low = "#E69F00" , mid = "#56B4E9" , high = "#0072B2", midpoint = 3.5) +
@@ -1787,27 +1836,31 @@ betas_plot <- function(betas, rmas) {
     scale_x_continuous(breaks=c(-1,0,1), name="Betas (original matrix)") +
     scale_y_continuous(breaks=c(-2,-1,0,1), name="Betas (model)") +
     geom_abline(aes(intercept=intercept, slope=slope), data=rmas, color="#CC79A7", size=0.75) +
-    facet_grid(p ~ variable) +
+    facet_grid(p ~ variable, labeller = labeller(variable = complete_labels, p = p_labels)) +
     geom_text(aes(-0.5, -1.85, label=paste("b=", formatC(round(intercept, 2), format="f", digits=2), "; m=", formatC(round(slope, 2), format="f", digits=2), "\nRsquare=", formatC(round(Rsquare, 2), format="f", digits=2), sep=""), group=NULL), size=3, data=rmas, hjust=0) +
     geom_text(aes(-0.7, 0.6, label=paste("RMSE=", formatC(round(RMSE, 2), format="f", digits=2), sep=""), group=NULL), size=3, data=rmas, hjust=1)
   
-  ggplot2::ggsave("betas_figure.pdf", device = "pdf", width = 7.5, height = 8)
+  ggplot2::ggsave("./figures/supl_betas_figure.pdf", device = "pdf", width = 7.5, height = 8)
 }
+
+#Correlation plot of the residuals given by the model for a retention percentage.
 
 correlation_plot <- function(model, p, plotOrder) {
   OmegaCor = computeAssociations(model)
   supportLevel = 0.95
   
   toPlot = OmegaCor[[1]]$mean
-  pdf(paste0("residuals_plot", p, ".pdf"))
+  pdf(paste0("./figures/residuals_plot", p, ".pdf"))
   corrplot(toPlot[plotOrder,plotOrder], method = "number", tl.cex=0.5,
            col=colorRampPalette(c("blue", "yellow", "red"))(255))
   dev.off()
 }
 
+#Correlation plot of the coefficients of the original community
+
 original_correlation_plot <- function(comm, plotOrder) {
   toPlot = comm$param$spCor
-  pdf("original_residuals_plot.pdf")
+  pdf("./figures/original_residuals_plot.pdf")
   corrplot(toPlot[plotOrder,plotOrder], method = "number", tl.cex=0.5,
            col=colorRampPalette(c("blue", "yellow", "red"))(255))
   dev.off()
@@ -1863,11 +1916,39 @@ BETAS <- function(datos_artificiales, modelo, p, i) {
 }
 
 
-rmaFit <- function(dat, a, b, var, p_tar){
+rmaFit <- function(dat, a, b, var, p_tar, i_tar){
+  dat<- filter(dat, variable == var & p == p_tar & i == i_tar)
+  require(lmodel2)
+  form <- as.formula(paste(b, "~", a, sep=""))
+  mod <- lmodel2(form, data=dat, "interval", "interval", 1000)
+  reg <- mod$regression.results
+  names(reg) <- c("method", "intercept", "slope", "angle", "p-value")
+  reg$Rsquare <- mod$rsquare
+  reg$Pparam <- mod$P.param
+  # Calculate RMSE. I keep this into this loop to get one estimate for each model fitted.
+  e <- dat[,a] - dat[,b]
+  reg$RMSE <- sqrt(mean(e^2))
+  reg$p <- p_tar
+  reg$i<- i_tar
+  return(reg[4,-1]) #row 4 , rma method
+}
+
+RMAS <- function(betas, p_tar, i_tar) {
+  int.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "int", p_tar, i_tar))
+  x1.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "x1", p_tar, i_tar))
+  x2.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "x2", p_tar, i_tar))
+  rmas<- rbind(int.rma, x1.rma, x2.rma)
+  rmas$variable<- c("int", "x1", "x2")
+  return(rmas)
+}
+
+
+
+supl_rmaFit <- function(dat, a, b, var, p_tar){
   dat<- filter(dat, variable == var & p == p_tar)
   require(lmodel2)
   form <- as.formula(paste(b, "~", a, sep=""))
-  mod <- lmodel2(form, data=dat, "interval", "interval", 1)
+  mod <- lmodel2(form, data=dat, "interval", "interval", 1000)
   reg <- mod$regression.results
   names(reg) <- c("method", "intercept", "slope", "angle", "p-value")
   reg$Rsquare <- mod$rsquare
@@ -1879,15 +1960,14 @@ rmaFit <- function(dat, a, b, var, p_tar){
   return(reg[4,-1]) #row 4 , rma method
 }
 
-RMAS <- function(betas, p_tar) {
-  int.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "int", p_tar))
-  x1.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "x1", p_tar))
-  x2.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "x2", p_tar))
+supl_RMAS <- function(betas, p_tar) {
+  int.rma<- as.data.frame(supl_rmaFit(betas, "original", "modelo", "int", p_tar))
+  x1.rma<- as.data.frame(supl_rmaFit(betas, "original", "modelo", "x1", p_tar))
+  x2.rma<- as.data.frame(supl_rmaFit(betas, "original", "modelo", "x2", p_tar))
   rmas<- rbind(int.rma, x1.rma, x2.rma)
   rmas$variable<- c("int", "x1", "x2")
   return(rmas)
 }
-
 
 #########################
 
@@ -1907,6 +1987,7 @@ coo_pattern <- function(comunidad, sp_names, sample, i, real_matrix = FALSE) {
   prob_matrix
 }
 
+
 pattern_plot <- function(coo_plot, coo_levels) {
   coo_plot$sample <- factor(coo_plot$sample)
   coo_plot$sample <-factor(coo_plot$sample, levels = sort(levels(coo_plot$sample), decreasing= TRUE))
@@ -1915,12 +1996,18 @@ pattern_plot <- function(coo_plot, coo_levels) {
   coo_plot$`sp-sp` <-factor(coo_plot$`sp-sp`, levels = coo_levels)
   
   ggplot(coo_plot) + 
-    geom_tile(aes(x= sample, y=`sp-sp`, fill = prob)) +
-    scale_fill_viridis_c(values = c(0, 0.17, 1)) +
-    ylab("species pairs") +
-    theme_bw()
-  ggplot2::ggsave("coo_figure.pdf", device = "pdf", width = 5, height = 8)
+    geom_tile(aes(x= `sp-sp`, y= sample, fill = prob)) +
+    # scale_fill_viridis_c(values = c(0, 0.17, 1), option = "turbo") +
+    # scale_fill_gradient2(low= "#2d004b", mid= "#f7f7f7", high= "#7f3b08", limits= c(-0.11, 0.11)) +
+    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-0.11, 0.11)) +
+    xlab("") +
+    ylab("") +
+    scale_y_discrete(labels=c(bquote(CM[O2]), bquote(CM[S90]), bquote(CM[S75]), bquote(CM[S50]), bquote(CM[S25]), bquote(CM[S10]))) +
+    theme_bw() +
+    theme(legend.title= element_blank(), axis.text.x=element_text(angle = 45, hjust = 1))
+  ggplot2::ggsave("./figures/coo_figure.pdf", device = "pdf", width = 10, height = 4)
 }
+
 
 ############################
 
@@ -1940,14 +2027,55 @@ corr_pattern_plot <- function(corr_plot, corr_levels, sign = FALSE) {
   if(sign == TRUE){
   corr_plot$prob <- sign(corr_plot$prob)}
   ggplot(corr_plot) + 
-    geom_raster(aes(x= sample, y=`sp-sp`, fill = prob)) +
-    scale_fill_distiller(palette = "RdYlGn") +
-    scale_fill_viridis_c() +
-    ylab("species pairs") +
-    geom_rect(xmin = 0.5, xmax = 1.5,   ymin = -Inf, ymax = Inf,   color = "black", alpha = 0, linetype="dashed")
-    theme_bw() 
-  filename <- paste0("corr_figure", if(sign){"_sign"}, ".pdf")
-  ggplot2::ggsave(filename, device = "pdf", width = 5, height = 8)
+    geom_raster(aes(x= `sp-sp`, y= sample, fill = prob)) +
+    # scale_fill_distiller(palette = "RdYlGn") +
+    # scale_fill_viridis_c(option = "turbo") +
+    # scale_fill_gradient2(low= "#2d004b", mid= "#f7f7f7", high= "#7f3b08", limits= c(-1, 1)) +
+    scale_fill_gradientn(colors= c("#7f3b08", "#e08214", "#f5f5f5", "#8073ac", "#2d004b"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-1, 1)) +
+    # ylab("species pairs") +
+    ylab("") + 
+    xlab("") +
+    scale_y_discrete(labels=c(expression(Omega), bquote(CM[O2]), bquote(CM[S90]), bquote(CM[S75]), bquote(CM[S50]), bquote(CM[S25]), bquote(CM[S10]))) +
+    geom_rect(xmin = -Inf, xmax = +Inf,   ymin = -Inf, ymax = 1.5,   color = "black", alpha = 0, linetype="dashed") +
+    theme_bw() +
+    theme(legend.title= element_blank(), axis.text.x=element_text(angle = 45, hjust = 1))
+  filename <- paste0("./figures/corr_figure", if(sign){"_sign"}, ".pdf")
+  ggplot2::ggsave(filename, device = "pdf", width = 10, height = 4)
 }
 
 
+######recuento falsos negativos
+
+compare.matrices <- function(sp_names, muestreo, original, i, p) {
+
+  muestreo <- muestreo[rownames(original),]
+  
+  falses_negativos <- apply(muestreo[,sp_names] != original[,sp_names], 2, sum) / nrow(muestreo)
+  # for(n in 1:length(sp_names)){
+  #   falsos_negativos[n,"FN"]<- length(which(muestreo[,sp_names[n]] != original[,sp_names[n]]))
+  #   falsos_negativos[n,"species"]<- sp_names[n]
+  # }
+  falsos_negativos <- data.frame(species = sp_names, FN = falses_negativos, i = i, p= p)
+
+  return(falsos_negativos)
+}
+
+
+####procrustes analysis
+
+procrustes.analysis <- function(i_tar, p_tar, combined_corr_pattern, datos_artificiales_spcor) {
+  sampled_coor <- reshape2::acast(combined_corr_pattern, var1 ~ var2 ~ sample ~ i, value.var = "prob" )
+  sampled_coor<- drop(sampled_coor)
+  # sampled_coor <- plyr::alply(sampled_coor,4,.dims = TRUE)
+  # sampled_coor <- acast(melt(sampled_coor), Var1 ~ Var2 ~ L1 ~ Var3)
+  # sampled_coor <- acast(melt(sampled_coor), Var1 ~ Var2 ~ L1)
+  # sampled_coor <- sampled_coor[,,i_tar,as.character(p_tar)]
+  sampled_coor <- rbind(sp1=NA, sampled_coor)
+  sampled_coor <- cbind(sampled_coor, sp10=NA)
+  sampled_coor[upper.tri(sampled_coor)] <- t(sampled_coor)[upper.tri(sampled_coor)]
+  diag(sampled_coor) <- 1
+  
+  procrus_sign <- procrustes(sign(datos_artificiales_spcor$param$spCor), sign(sampled_coor), scale = F)
+  procrus <- procrustes(datos_artificiales_spcor$param$spCor, sampled_coor, scale = F)
+  return(data.frame(rmse= summary(procrus)$rmse, rmse_sign= summary(procrus_sign)$rmse, i= i_tar, p= p_tar))
+}
