@@ -41,3 +41,10 @@ vignettes/*.pdf
 # targets
 _targets/
 
+# Resultados
+figures/
+tables/
+diagnostics/
+
+coo_probabilities.R
+
