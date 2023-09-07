@@ -1,3 +1,5 @@
+# The communitySimmul function has been obtained from https://github.com/guiblanchet/HMSC/blob/master/R/communitySimul.R
+
 #' @title Simulate a species community
 #'
 #' @description Simulates a species community assuming a linear model with the proposed descriptors, the species traits and one or more random effects.
@@ -1298,7 +1300,7 @@ communitySimul<-function(X=NULL,Tr=NULL,Phylo=NULL,Random=NULL,Auto=NULL,nsp=NUL
 ###########################################.....OWN FUNCTIONS........##################################################################
 
 #FOLDS
-#Transform dataframe into raster (requierement to use blockCV)
+#Transform dataframe into raster (requirement to use blockCV)
 
 df2raster <- function(df) {
   df<- cbind(df[,c(1,2,4,5)])
@@ -1449,10 +1451,10 @@ plot.diagnostics <- function(model.pa, p) {
  
   png(paste0("./diagnostics/diagnostics_", p, ".png"))
   par(mfrow = c(2, 2))
-  hist(ess.beta, xlab = expression("Effective sample size" ~ beta ~ ""), main=NULL, col= "light green")
-  hist(ess.V, xlab = expression("Effective sample size" ~ v ~ ""))
-  hist(psrf.beta, xlab = expression("Potential scale reduction factor" ~ beta ~ ""), main=NULL, col= "light green")
-  hist(psrf.V, xlab = expression("Potential scale reduction factor" ~ v ~ ""))
+  hist(ess.beta, xlab = expression("Effective sample size" ~ beta ~ ""), main=NULL, col= "light green", breaks= 6)
+  hist(ess.V, xlab = expression("Effective sample size" ~ v ~ ""),  main=NULL, breaks= 6)
+  hist(psrf.beta, xlab = expression("Potential scale reduction factor" ~ beta ~ ""), main=NULL, col= "light green", breaks= 6)
+  hist(psrf.V, xlab = expression("Potential scale reduction factor" ~ v ~ ""),  main=NULL, breaks= 6)
   dev.off()
 }
 
@@ -1464,6 +1466,8 @@ median2 = function(x) {
 mean2 = function(x) {
   return(mean(x, na.rm = TRUE))
 }
+
+#Required for sensitivity analysis in performance metrics calculation
 
 mean_prediction <- function(predY, hM) {
 
@@ -1482,6 +1486,8 @@ mean_prediction <- function(predY, hM) {
   rownames(mPredY) <- rownames(predY)
   mPredY
 }
+
+#modification of Hmsc function, making it more flexible for validation with external data
 
 custom_evaluateModelFit <- function (obsY, predY, hM) {
   computeRMSE = function(obs, pred) {
@@ -1614,7 +1620,9 @@ custom_evaluateModelFit <- function (obsY, predY, hM) {
   }
   return(MF)
 }
- 
+
+#modification of Hmsc function, making it more flexible for validation with external data
+
 tuning_computePredictedValues <- function(newData, oldData, modelo, Yc=NULL) {
   require(dplyr)
   new_index <- !rownames(newData) %in% rownames(oldData)
@@ -1665,6 +1673,8 @@ tuning_computePredictedValues <- function(newData, oldData, modelo, Yc=NULL) {
   predArray = abind(predYR1, along = 3)
   predArray
 }
+
+#sensitivity specificty analysis for testing model performance
 
 sensibilidad_especifidad <- function(sp_names, pred, obs, tr) {
 
@@ -1748,7 +1758,7 @@ tuning_predictive <- function(com_testing, modelo, sp_names, p, i) {
 
 
 original_same_size <- function(predictions, originals) {
-  comunidad_original_mismo_tamaÃ±o<- originals %>%
+  comunidad_original_mismo_tamaño<- originals %>%
     sample_n(size=(nrow(predictions)),replace=FALSE)
 }
 
@@ -1757,11 +1767,11 @@ original_same_size <- function(predictions, originals) {
 
 #Plot to check the diferences between the different metrics (i.e., explanatory and predicitive power, same sample)
 
-comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tamaÃ±o) {
+comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tamaño) {
   
   metricas_reales <- metricas_reales[which(metricas_reales[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
   metricas_reales_misma_muestra <- metricas_reales_misma_muestra[which(metricas_reales_misma_muestra[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
-  metricas_reales_mismo_tamaÃ±o <- metricas_reales_mismo_tamaÃ±o[which(metricas_reales_mismo_tamaÃ±o[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  metricas_reales_mismo_tamaño <- metricas_reales_mismo_tamaño[which(metricas_reales_mismo_tamaño[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
   poder_explicativo <- poder_explicativo[which(poder_explicativo[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
   poder_predictivo <- poder_predictivo[which(poder_predictivo[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
   
@@ -1769,7 +1779,7 @@ comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reale
   poder_explicativo[,"validation"]<- "EXP"
   poder_predictivo[,"validation"]<- "PRED"
   metricas_reales[,"validation"]<- "CM01"
-  metricas_reales_mismo_tamaÃ±o[,"validation"]<- "CMss"
+  metricas_reales_mismo_tamaño[,"validation"]<- "CMss"
   metricas_reales_misma_muestra[,"validation"]<- "EXPwfn"
   
   mix <- rbind(poder_explicativo, poder_predictivo, metricas_reales_misma_muestra) #bind here the metrics you want to compare
@@ -1915,7 +1925,7 @@ BETAS <- function(datos_artificiales, modelo, p, i) {
   return(betas)
 }
 
-
+#calibration of rma models 
 rmaFit <- function(dat, a, b, var, p_tar, i_tar){
   dat<- filter(dat, variable == var & p == p_tar & i == i_tar)
   require(lmodel2)
@@ -2044,7 +2054,7 @@ corr_pattern_plot <- function(corr_plot, corr_levels, sign = FALSE) {
 }
 
 
-######recuento falsos negativos
+######false negatives count
 
 compare.matrices <- function(sp_names, muestreo, original, i, p) {
 

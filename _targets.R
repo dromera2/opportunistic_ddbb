@@ -25,7 +25,7 @@ mapped <- tar_map(values = values,
         unlist = FALSE,
         tar_target(comunidad_muestreada, muestreo(comunidad_original, p_target, size= 500, i = i_target)),
         tar_target(comunidad_original_misma_muestra, original_same_sample(comunidad_muestreada, comunidad_original)),
-        tar_target(comunidad_original_mismo_tamaÃ±o, original_same_size(comunidad_muestreada, comunidad_original)),
+        tar_target(comunidad_original_mismo_tamaño, original_same_size(comunidad_muestreada, comunidad_original)),
         tar_target(modelo_hmsc, calibrate_hmsc(muestreo=comunidad_muestreada, thin=thin, samples=samples,
                                                 transient=transient, nChains=nchains, nParallel=nParallel)),
         tar_target(graficos_diagnosticos, plot.diagnostics(modelo_hmsc, p_target)),
@@ -36,7 +36,7 @@ mapped <- tar_map(values = values,
                                                     modelo= modelo_hmsc, sp_names= sp_names, p_target, i= i_target)),
         tar_target(metricas_reales_misma_muestra, tuning_metricas(com_testing = comunidad_original_misma_muestra, com_training= comunidad_muestreada,
                                                                   modelo= modelo_hmsc, sp_names= sp_names, p_target, i=i_target)),
-        tar_target(metricas_reales_mismo_tamaÃ±o, tuning_metricas(com_testing = comunidad_original_mismo_tamaÃ±o, com_training = comunidad_muestreada,
+        tar_target(metricas_reales_mismo_tamaño, tuning_metricas(com_testing = comunidad_original_mismo_tamaño, com_training = comunidad_muestreada,
                                                                  modelo= modelo_hmsc, sp_names= sp_names, p_target, i=i_target)),
         tar_target(individual_betas, BETAS(datos_artificiales = datos_artificiales, modelo = modelo_hmsc, p = p_target, i= i_target))
         
@@ -78,9 +78,9 @@ list(
     combined_metricas_reales_misma_muestra,
     mapped[["metricas_reales_misma_muestra"]]),
   tar_combine(
-    combined_metricas_reales_mismo_tamaÃ±o,
-    mapped[["metricas_reales_mismo_tamaÃ±o"]]),
-  tar_target(performance_plot, comparative_plot(combined_poder_explicativo, combined_poder_predictivo, combined_metricas_reales, combined_metricas_reales_misma_muestra, combined_metricas_reales_mismo_tamaÃ±o)),
+    combined_metricas_reales_mismo_tamaño,
+    mapped[["metricas_reales_mismo_tamaño"]]),
+  tar_target(performance_plot, comparative_plot(combined_poder_explicativo, combined_poder_predictivo, combined_metricas_reales, combined_metricas_reales_misma_muestra, combined_metricas_reales_mismo_tamaño)),
   tar_combine(
     combined_betas, mapped[["individual_betas"]]),
   tar_target(combined_rmas, RMAS(combined_betas, p_target, i_target), pattern = cross(p_target, i_target)),
@@ -147,48 +147,3 @@ list(
  tar_target(plot_pattern_corr_sign, corr_pattern_plot(corr_plot, corr_levels, TRUE))
   )
   
-
-
-##pruebas procrustes
-# library(reshape2)
-# library(vegan)
-# # targets::tar_load(combined_corr_pattern)
-# targets::tar_load(corr_pattern_0.1_1)
-# combined_corr_pattern<- corr_pattern_0.1_1
-# targets::tar_load(datos_artificiales_spcor)
-# 
-# 
-# procrustes.analysis <- function(i_tar, p_tar, combined_corr_pattern, datos_artificiales_spcor) {
-#   sampled_coor <- reshape2::acast(combined_corr_pattern, var1 ~ var2 ~ sample ~ i, value.var = "prob" )
-#   sampled_coor<- drop(sampled_coor)
-#   # sampled_coor <- plyr::alply(sampled_coor,4,.dims = TRUE)
-#   # sampled_coor <- acast(melt(sampled_coor), Var1 ~ Var2 ~ L1 ~ Var3)
-#   # sampled_coor <- acast(melt(sampled_coor), Var1 ~ Var2 ~ L1)
-#   # sampled_coor <- sampled_coor[,,i_tar,as.character(p_tar)]
-#   sampled_coor <- rbind(sp1=NA, sampled_coor)
-#   sampled_coor <- cbind(sampled_coor, sp10=NA)
-#   sampled_coor[upper.tri(sampled_coor)] <- t(sampled_coor)[upper.tri(sampled_coor)]
-#   diag(sampled_coor) <- 1
-# 
-#   procrus <- procrustes(sign(datos_artificiales_spcor$param$spCor), sign(sampled_coor))
-#   return(procrus)
-# }
-# 
-# i_tar<- 1
-# p_tar<- 0.75
-# 
-# toma75<- procrustes.analysis(i_tar, p_tar, combined_corr_pattern, datos_artificiales_spcor )
-# summary(toma75)$rmse
-
-
-# combined_procrus %>% group_by(p) %>% summarise(mean=mean(rmse), sd=sd(rmse), mean_sign= mean(rmse_sign), sd_sign= sd(rmse_sign))
-# 
-# targets::tar_load(combined_procrus)
-# ggplot(combined_procrus, aes(group = p, x = p, y = rmse)) + geom_boxplot()
-# ggplot(combined_procrus, aes(group = p, x = p, y = rmse_sign)) + geom_boxplot()
-# summary(aov(rmse ~ as.factor(p), combined_procrus))
-# summary(aov(rmse_sign ~ as.factor(p), combined_procrus))
-# TukeyHSD(aov(rmse ~ as.factor(p), combined_procrus))
-# TukeyHSD(aov(rmse_sign ~ as.factor(p), combined_procrus))
-# library(ggpubr)
-# ggqqplot(prueba$residuals)
