@@ -1,4 +1,4 @@
-GRID.SIZE<- 50 #Grid size for artificial data generation
+grid_size <- 50 #Grid size for artificial data generation
 samples = 100 #Sample size for hmsc calibration
 nchains = 2 #number of Markov chain Montecarlo for hmsc calibration
 nParallel = 2 

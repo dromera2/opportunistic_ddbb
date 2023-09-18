@@ -1323,25 +1323,20 @@ custom_blockCV <- function(df, n = 5, i = 100) {
   crs(pb_data) <- "EPSG:4978"
   pb_data <- st_zm(st_as_sf(pb_data))
   
-  sac <- spatialAutoRange(rasterLayer = awt,
-                          doParallel = TRUE,
-                          showPlots = TRUE)
-  
 #Spatial blocking by specified range with random assignment
   sb <- spatialBlock(speciesData = pb_data,
                      rasterLayer = awt,
-                     theRange = sac$range, # size of the blocks
+                     theRange = 1500,
                      k = n,
                      selection = "random",
                      iteration = i, # find evenly dispersed folds
   )
   data.frame(partition = sb$foldID)
-  
 }
 
 #SUbsampling the original community including false absences, i.e., 0)
 
-muestreo <- function(coo_matrix, p, sp_names = paste0("sp", 1:10), coord_names = c("x_coord", "y_coord"), var_names = c("x1", "x2"), size = FALSE, i) {
+get.sample <- function(coo_matrix, p, sp_names = paste0("sp", 1:10), coord_names = c("x_coord", "y_coord"), var_names = c("x1", "x2"), size = FALSE, i) {
   #Create twin matrix with NA
   na_matrix<- coo_matrix
   na_matrix[,]<- NA
@@ -1372,7 +1367,7 @@ muestreo <- function(coo_matrix, p, sp_names = paste0("sp", 1:10), coord_names =
 
 #Generate artificial data, considering or not the species correlations effect
 
-generate_artificial_data <- function(GRID.SIZE,  spCor = NULL) {
+generate.artificial.data <- function(GRID.SIZE,  spCor = NULL) {
   ENVIRONMENT <- melt(array(NA, dim=c(GRID.SIZE, GRID.SIZE)))[,-3]
   COORDS <- ENVIRONMENT
   colnames(COORDS) <- c("x_coord", "y_coord")
@@ -1400,12 +1395,12 @@ generate_artificial_data <- function(GRID.SIZE,  spCor = NULL) {
 
 #Building and calibrating hmsc model
 
-calibrate_hmsc <- function(muestreo, thin, samples, transient, nChains, nParallel, sp_names = paste0("sp", 1:10), var_names = c("x1", "x2"), coord_names = c("x_coord", "y_coord")) {
+calibrate.hmsc <- function(data, thin, samples, transient, nChains, nParallel, sp_names = paste0("sp", 1:10), var_names = c("x1", "x2"), coord_names = c("x_coord", "y_coord")) {
   
-  set.model <- function(muestreo, sp_names, var_names, coord_names) {
-    Y <- muestreo[, sp_names] 
-    XData<- muestreo[, var_names]
-    xy<- muestreo[, coord_names]
+  set.model <- function(data, sp_names, var_names, coord_names) {
+    Y <- data[, sp_names] 
+    XData<- data[, var_names]
+    xy<- data[, coord_names]
     Y <- as.matrix(Y)
     rownames(Y) <- rownames(XData)
     XFormula = ~x1 + x2
@@ -1421,7 +1416,7 @@ calibrate_hmsc <- function(muestreo, thin, samples, transient, nChains, nParalle
          distr="probit")
   }
   
-  model.pa<- set.model(muestreo, sp_names, var_names, coord_names)
+  model.pa<- set.model(data, sp_names, var_names, coord_names)
   
   # fitting the model
   sampleMcmc(model.pa, thin = thin, samples = samples, transient = transient, nChains = nChains, nParallel = nParallel)
@@ -1710,11 +1705,11 @@ extraccion <- function(e){
 
 #Gives performance metrics (threshold dependent and independent) for explanatory power
 
-tuning_metricas<- function(com_testing, com_training, modelo, sp_names, p, Yc=NULL, i) {
+tuning.metrics<- function(com_testing, com_training, model, sp_names, p, Yc=NULL, i) {
  
-  predY<- tuning_computePredictedValues(com_testing, com_training, modelo, Yc=Yc)
-  mpredY<- mean_prediction(predY, modelo)
-  metricas<- data.frame(custom_evaluateModelFit(obsY = com_testing[, sp_names], predY = predY, hM = modelo), species = sp_names, p = p)
+  predY<- tuning_computePredictedValues(com_testing, com_training, model, Yc=Yc)
+  mpredY<- mean_prediction(predY, model)
+  metricas<- data.frame(custom_evaluateModelFit(obsY = com_testing[, sp_names], predY = predY, hM = model), species = sp_names, p = p)
    
   sensitivity <- lapply(sp_names, FUN= sensibilidad_especifidad, mpredY, com_testing)
   sensitivity <- do.call("rbind", lapply(sensitivity, FUN= extraccion))
@@ -1728,13 +1723,13 @@ tuning_metricas<- function(com_testing, com_training, modelo, sp_names, p, Yc=NU
 
 #Gives performance metrics (threshold dependent and independent) for predictive power
 
-tuning_predictive <- function(com_testing, modelo, sp_names, p, i) {
-  predY = computePredictedValues(hM= modelo, partition= com_testing$partition , nParallel = 5)
-  mpredY<- data.frame(mean_prediction(predY, modelo))
+tuning.predictive <- function(com_testing, model, sp_names, p, i) {
+  predY = computePredictedValues(hM= model, partition= com_testing$partition , nParallel = 5)
+  mpredY<- data.frame(mean_prediction(predY, model))
   colnames(mpredY)<- sp_names
   rownames(mpredY)<- rownames(com_testing)
   
-  PP <- data.frame(evaluateModelFit(hM=modelo, predY=predY), species=sp_names, p=p)
+  PP <- data.frame(evaluateModelFit(hM=model, predY=predY), species=sp_names, p=p)
   
   sensitivity <- lapply(sp_names, FUN= sensibilidad_especifidad, mpredY, com_testing)
   sensitivity <- do.call("rbind", lapply(sensitivity, FUN= extraccion))
@@ -1749,7 +1744,7 @@ tuning_predictive <- function(com_testing, modelo, sp_names, p, i) {
 
 #####original cut####### Functions to get communities (without false absences) with the same size and the same sample as the subsampled ones
 
-  original_same_sample <- function(predictions, originals) {
+  original.same.sample <- function(predictions, originals) {
     predictions[,"rownames"] <- rownames(predictions)
     originals[,"rownames"] <- rownames(originals)
     
@@ -1758,7 +1753,7 @@ tuning_predictive <- function(com_testing, modelo, sp_names, p, i) {
 
 
 original_same_size <- function(predictions, originals) {
-  comunidad_original_mismo_tamaño<- originals %>%
+  comunidad_original_mismo_tamano<- originals %>%
     sample_n(size=(nrow(predictions)),replace=FALSE)
 }
 
@@ -1767,22 +1762,17 @@ original_same_size <- function(predictions, originals) {
 
 #Plot to check the diferences between the different metrics (i.e., explanatory and predicitive power, same sample)
 
-comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reales, metricas_reales_misma_muestra, metricas_reales_mismo_tamaño) {
+comparative.plot <- function(explanatory, predictive, same_sample) {
   
-  metricas_reales <- metricas_reales[which(metricas_reales[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
-  metricas_reales_misma_muestra <- metricas_reales_misma_muestra[which(metricas_reales_misma_muestra[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
-  metricas_reales_mismo_tamaño <- metricas_reales_mismo_tamaño[which(metricas_reales_mismo_tamaño[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
-  poder_explicativo <- poder_explicativo[which(poder_explicativo[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
-  poder_predictivo <- poder_predictivo[which(poder_predictivo[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
-  
+  same_sample <- same_sample[which(same_sample[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  explanatory <- explanatory[which(explanatory[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
+  predictive <- predictive[which(predictive[,"variable"] == c("AUC", "TjurR2", "TSS", "kappa")),]
 
-  poder_explicativo[,"validation"]<- "EXP"
-  poder_predictivo[,"validation"]<- "PRED"
-  metricas_reales[,"validation"]<- "CM01"
-  metricas_reales_mismo_tamaño[,"validation"]<- "CMss"
-  metricas_reales_misma_muestra[,"validation"]<- "EXPwfn"
+  explanatory[,"validation"]<- "EXP"
+  predictive[,"validation"]<- "PRED"
+  same_sample[,"validation"]<- "EXPwfn"
   
-  mix <- rbind(poder_explicativo, poder_predictivo, metricas_reales_misma_muestra) #bind here the metrics you want to compare
+  mix <- rbind(explanatory, predictive, same_sample) #bind here the metrics you want to compare
   mix <- mix %>% mutate(variable = recode(variable, "kappa" = "Kappa"))
   mix$validation <- factor(mix$validation, levels = c("EXP", "PRED", "EXPwfn"))
   mix<- rename(mix, Validation = validation)
@@ -1803,7 +1793,7 @@ comparative_plot <- function(poder_explicativo, poder_predictivo, metricas_reale
 
 #Plot to draw the intercept and the slope of the beta parameters along retention percentage.
 
-betas_plot <- function(combined_rmas) {
+betas.plot <- function(combined_rmas) {
   rmas <- combined_rmas %>% pivot_longer(cols = c("intercept", "slope"))
   rmas_sum <- rmas %>% group_by (p, variable, name) %>% summarise(mean = mean(value), sd = sd(value))
   
@@ -1829,7 +1819,7 @@ betas_plot <- function(combined_rmas) {
 
 #Representation of the slope and intercept of the beta parameters, grouped by retention percentage
 
-supl_betas_plot <- function(betas, rmas) {
+supl.betas.plot <- function(betas, rmas) {
   
   complete_labels <- c(int = "Intercept", x1 = "Beta x1", x2 = "Beta x2")
   names(complete_labels) <- c("int", "x1", "x2")
@@ -1837,7 +1827,7 @@ supl_betas_plot <- function(betas, rmas) {
   p_labels <- c("10%", "25%", "50%", "75%", "90%")
   names(p_labels) <- c(0.1, 0.25, 0.5, 0.75, 0.9)
  
-  ggplot(betas, aes_string(x="original", y="modelo")) +
+  ggplot(betas, aes_string(x="original", y="model")) +
     geom_hex() +
     scale_fill_gradient2(low = "#E69F00" , mid = "#56B4E9" , high = "#0072B2", midpoint = 3.5) +
     theme(panel.grid=element_blank()) +
@@ -1855,7 +1845,7 @@ supl_betas_plot <- function(betas, rmas) {
 
 #Correlation plot of the residuals given by the model for a retention percentage.
 
-correlation_plot <- function(model, p, plotOrder) {
+correlation.plot <- function(model, p, plotOrder) {
   OmegaCor = computeAssociations(model)
   supportLevel = 0.95
   
@@ -1868,7 +1858,7 @@ correlation_plot <- function(model, p, plotOrder) {
 
 #Correlation plot of the coefficients of the original community
 
-original_correlation_plot <- function(comm, plotOrder) {
+original.correlation.plot <- function(comm, plotOrder) {
   toPlot = comm$param$spCor
   pdf("./figures/original_residuals_plot.pdf")
   corrplot(toPlot[plotOrder,plotOrder], method = "number", tl.cex=0.5,
@@ -1887,7 +1877,7 @@ to_plot <- function(model, p) {
   toPlot
 }
 
-individual_corr_plot <- function(p, array_corr, plotOrder) {
+individual.corr.plot <- function(p, array_corr, plotOrder) {
   pdf(paste0("residuals_plot", p, ".pdf"))
   p <- as.character(p)
   array_corr <- array_corr[,,p]
@@ -1901,23 +1891,23 @@ individual_corr_plot <- function(p, array_corr, plotOrder) {
 
 ####RMAS BETAS######
 
-BETAS <- function(datos_artificiales, modelo, p, i) {
+BETAS <- function(data, model, p, i) {
   #original
-  beta.original <- data.frame(datos_artificiales$param$paramX)
+  beta.original <- data.frame(data$param$paramX)
   colnames(beta.original) <- c("int", "x1", "x2")
   beta.original <- melt(beta.original, measure.vars= c("int", "x1", "x2"))
   beta.original$species <- paste0("sp", 1:10)
   colnames(beta.original) <- c("variable", "original", "species")
   beta.original$p <- p
   
-  #modelo
-  postBeta <- getPostEstimate(modelo, parName="Beta")
+  #model
+  postBeta <- getPostEstimate(model, parName="Beta")
   
   beta.mod <- data.frame(t(postBeta$mean))
   colnames(beta.mod) <- c("int", "x1", "x2")
   beta.mod <- melt(beta.mod, measure.vars= c("int", "x1", "x2"))
   beta.mod$species <- paste0("sp", 1:10)
-  colnames(beta.mod) <- c("variable", "modelo", "species")
+  colnames(beta.mod) <- c("variable", "model", "species")
   beta.mod$p <- p
   
   betas <- merge(beta.original, beta.mod, by = c("variable", "species", "p"))
@@ -1944,14 +1934,13 @@ rmaFit <- function(dat, a, b, var, p_tar, i_tar){
 }
 
 RMAS <- function(betas, p_tar, i_tar) {
-  int.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "int", p_tar, i_tar))
-  x1.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "x1", p_tar, i_tar))
-  x2.rma<- as.data.frame(rmaFit(betas, "original", "modelo", "x2", p_tar, i_tar))
+  int.rma<- as.data.frame(rmaFit(betas, "original", "model", "int", p_tar, i_tar))
+  x1.rma<- as.data.frame(rmaFit(betas, "original", "model", "x1", p_tar, i_tar))
+  x2.rma<- as.data.frame(rmaFit(betas, "original", "model", "x2", p_tar, i_tar))
   rmas<- rbind(int.rma, x1.rma, x2.rma)
   rmas$variable<- c("int", "x1", "x2")
   return(rmas)
 }
-
 
 
 supl_rmaFit <- function(dat, a, b, var, p_tar){
@@ -1970,10 +1959,10 @@ supl_rmaFit <- function(dat, a, b, var, p_tar){
   return(reg[4,-1]) #row 4 , rma method
 }
 
-supl_RMAS <- function(betas, p_tar) {
-  int.rma<- as.data.frame(supl_rmaFit(betas, "original", "modelo", "int", p_tar))
-  x1.rma<- as.data.frame(supl_rmaFit(betas, "original", "modelo", "x1", p_tar))
-  x2.rma<- as.data.frame(supl_rmaFit(betas, "original", "modelo", "x2", p_tar))
+supl.RMAS <- function(betas, p_tar) {
+  int.rma<- as.data.frame(supl_rmaFit(betas, "original", "model", "int", p_tar))
+  x1.rma<- as.data.frame(supl_rmaFit(betas, "original", "model", "x1", p_tar))
+  x2.rma<- as.data.frame(supl_rmaFit(betas, "original", "model", "x2", p_tar))
   rmas<- rbind(int.rma, x1.rma, x2.rma)
   rmas$variable<- c("int", "x1", "x2")
   return(rmas)
@@ -1981,12 +1970,12 @@ supl_RMAS <- function(betas, p_tar) {
 
 #########################
 
-coo_pattern <- function(comunidad, sp_names, sample, i, real_matrix = FALSE) {
+coo_pattern <- function(community_data, sp_names, sample, i, real_matrix = FALSE) {
   if(real_matrix == TRUE){
-    prob <- cooccur(mat = t(comunidad[,sp_names]), type = "spp_site", thresh = TRUE,
+    prob <- cooccur(mat = t(community_data[,sp_names]), type = "spp_site", thresh = TRUE,
                     spp_names = TRUE, only_effects = TRUE, eff_standard = TRUE, eff_matrix = TRUE)
   }
-  else{prob <- comunidad}
+  else{prob <- community_data}
   prob_matrix <- as.matrix(prob)
   prob_matrix[upper.tri(prob_matrix, diag = TRUE)] <- NA
   prob_matrix <- na.omit(melt(prob_matrix))
@@ -1998,7 +1987,7 @@ coo_pattern <- function(comunidad, sp_names, sample, i, real_matrix = FALSE) {
 }
 
 
-pattern_plot <- function(coo_plot, coo_levels) {
+pattern.plot <- function(coo_plot, coo_levels) {
   coo_plot$sample <- factor(coo_plot$sample)
   coo_plot$sample <-factor(coo_plot$sample, levels = sort(levels(coo_plot$sample), decreasing= TRUE))
   
@@ -2007,8 +1996,6 @@ pattern_plot <- function(coo_plot, coo_levels) {
   
   ggplot(coo_plot) + 
     geom_tile(aes(x= `sp-sp`, y= sample, fill = prob)) +
-    # scale_fill_viridis_c(values = c(0, 0.17, 1), option = "turbo") +
-    # scale_fill_gradient2(low= "#2d004b", mid= "#f7f7f7", high= "#7f3b08", limits= c(-0.11, 0.11)) +
     scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-0.11, 0.11)) +
     xlab("") +
     ylab("") +
@@ -2021,13 +2008,13 @@ pattern_plot <- function(coo_plot, coo_levels) {
 
 ############################
 
-corr_extraction <- function(modelo_hmsc_spcor) {
-  OmegaCor <- computeAssociations(modelo_hmsc_spcor)
+corr.extraction <- function(model) {
+  OmegaCor <- computeAssociations(model)
   corr <- OmegaCor[[1]]$mean
   corr
 }
 
-corr_pattern_plot <- function(corr_plot, corr_levels, sign = FALSE) {
+corr.pattern.plot <- function(corr_plot, corr_levels, sign = FALSE) {
   corr_plot$sample <- factor(corr_plot$sample)
   corr_plot$sample <-factor(corr_plot$sample, levels = sort(levels(corr_plot$sample), decreasing= TRUE))
   levels(corr_plot$sample)   
@@ -2038,11 +2025,7 @@ corr_pattern_plot <- function(corr_plot, corr_levels, sign = FALSE) {
   corr_plot$prob <- sign(corr_plot$prob)}
   ggplot(corr_plot) + 
     geom_raster(aes(x= `sp-sp`, y= sample, fill = prob)) +
-    # scale_fill_distiller(palette = "RdYlGn") +
-    # scale_fill_viridis_c(option = "turbo") +
-    # scale_fill_gradient2(low= "#2d004b", mid= "#f7f7f7", high= "#7f3b08", limits= c(-1, 1)) +
     scale_fill_gradientn(colors= c("#7f3b08", "#e08214", "#f5f5f5", "#8073ac", "#2d004b"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-1, 1)) +
-    # ylab("species pairs") +
     ylab("") + 
     xlab("") +
     scale_y_discrete(labels=c(expression(Omega), bquote(CM[O2]), bquote(CM[S90]), bquote(CM[S75]), bquote(CM[S50]), bquote(CM[S25]), bquote(CM[S10]))) +
@@ -2056,36 +2039,28 @@ corr_pattern_plot <- function(corr_plot, corr_levels, sign = FALSE) {
 
 ######false negatives count
 
-compare.matrices <- function(sp_names, muestreo, original, i, p) {
+compare.matrices <- function(sp_names, sample, original, i, p) {
 
-  muestreo <- muestreo[rownames(original),]
+  sample <- sample[rownames(original),]
   
-  falses_negativos <- apply(muestreo[,sp_names] != original[,sp_names], 2, sum) / nrow(muestreo)
-  # for(n in 1:length(sp_names)){
-  #   falsos_negativos[n,"FN"]<- length(which(muestreo[,sp_names[n]] != original[,sp_names[n]]))
-  #   falsos_negativos[n,"species"]<- sp_names[n]
-  # }
-  falsos_negativos <- data.frame(species = sp_names, FN = falses_negativos, i = i, p= p)
+  false_negatives <- apply(sample[,sp_names] != original[,sp_names], 2, sum) / nrow(sample)
+  false_negatives <- data.frame(species = sp_names, FN = false_negatives, i = i, p= p)
 
-  return(falsos_negativos)
+  return(false_negatives)
 }
 
 
 ####procrustes analysis
 
-procrustes.analysis <- function(i_tar, p_tar, combined_corr_pattern, datos_artificiales_spcor) {
-  sampled_coor <- reshape2::acast(combined_corr_pattern, var1 ~ var2 ~ sample ~ i, value.var = "prob" )
+procrustes.analysis <- function(i_tar, p_tar, pattern, data) {
+  sampled_coor <- reshape2::acast(pattern, var1 ~ var2 ~ sample ~ i, value.var = "prob" )
   sampled_coor<- drop(sampled_coor)
-  # sampled_coor <- plyr::alply(sampled_coor,4,.dims = TRUE)
-  # sampled_coor <- acast(melt(sampled_coor), Var1 ~ Var2 ~ L1 ~ Var3)
-  # sampled_coor <- acast(melt(sampled_coor), Var1 ~ Var2 ~ L1)
-  # sampled_coor <- sampled_coor[,,i_tar,as.character(p_tar)]
   sampled_coor <- rbind(sp1=NA, sampled_coor)
   sampled_coor <- cbind(sampled_coor, sp10=NA)
   sampled_coor[upper.tri(sampled_coor)] <- t(sampled_coor)[upper.tri(sampled_coor)]
   diag(sampled_coor) <- 1
   
-  procrus_sign <- procrustes(sign(datos_artificiales_spcor$param$spCor), sign(sampled_coor), scale = F)
-  procrus <- procrustes(datos_artificiales_spcor$param$spCor, sampled_coor, scale = F)
+  procrus_sign <- procrustes(sign(data$param$spCor), sign(sampled_coor), scale = F)
+  procrus <- procrustes(data$param$spCor, sampled_coor, scale = F)
   return(data.frame(rmse= summary(procrus)$rmse, rmse_sign= summary(procrus_sign)$rmse, i= i_tar, p= p_tar))
 }
