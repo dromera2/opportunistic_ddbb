@@ -2064,3 +2064,136 @@ procrustes.analysis <- function(i_tar, p_tar, pattern, data) {
   procrus <- procrustes(data$param$spCor, sampled_coor, scale = F)
   return(data.frame(rmse= summary(procrus)$rmse, rmse_sign= summary(procrus_sign)$rmse, i= i_tar, p= p_tar))
 }
+
+
+#PREDICTIONS OVER SPACE
+
+spatial.prediction <- function(p, i, env_xy_data, model, sp_names) {
+  
+  xy.grid <- env_xy_data %>% dplyr::select(c(x_coord, y_coord))
+  colnames(xy.grid) <- c("x", "y")
+  
+  XData.grid <- env_xy_data %>% dplyr::select(c(x1, x2))
+  
+  # XData.grid <- as.data.frame(getValues(env_data))
+  # xy.grid <- as.data.frame(coordinates(env_data))
+  # 
+  complete.index <- which(complete.cases(XData.grid))
+  Gradient <- prepareGradient(model, XDataNew = XData.grid[complete.index,], sDataNew = list(units=xy.grid[complete.index,]))
+  
+  predY <- predict(model, Gradient=Gradient, expected = TRUE, predictEtaMean = TRUE, nParallel=2)
+  
+  length(predY)
+  dim(predY[[1]])
+  EpredY <- matrix(NA, nrow(XData.grid), 10)
+  library(abind)
+  EpredY[complete.index,] <- apply(abind(predY,along=3),c(1,2),mean)
+  length(EpredY)
+  
+  mapData=data.frame(x=xy.grid[,1],y=xy.grid[,2], EpredY)
+  colnames(mapData) <- c("x", "y", sp_names)
+  library(reshape2)
+  mapData <- melt(mapData, id.vars = c("x", "y")) %>% mutate(sample = p, iteration = i)
+  
+  # library(RColorBrewer)
+  # library(ggplot2)
+  # 
+  # ggplot(data = mapData, aes(x=x, y=y, fill=value)) +
+  #   geom_raster() +
+  #   scale_fill_distiller(palette="RdYlGn", na.value="royalblue") +
+  #   theme(legend.position="bottom", aspect.ratio= 1) +
+  #   facet_wrap(~variable)
+}
+
+# spat.plot <- function(Data) {
+#   distributions <- ggplot(data = Data, aes(x=x, y=y, fill=value)) +
+#     geom_raster() +
+#     scale_fill_distiller(palette="RdYlGn", na.value="royalblue") +
+#     theme(legend.position="right", aspect.ratio= 1) +
+#     facet_grid(variable~sample) +
+#     theme(axis.text.x=element_blank(),
+#           axis.ticks.x=element_blank()) +
+#     labs(x = "")
+#   
+#   distributions
+#   
+#   ggplot2::ggsave("./figures/spatial_figure.pdf", device = "pdf", width = 7.5, height = 8)
+#   
+#   distributions
+# }
+
+
+
+spatial.clust.plot <- function(Data) {
+  
+  wide_data <- Data %>% pivot_wider(names_from = variable, values_from = value) 
+
+  # sp_data <- wide_data %>% ungroup() %>% dplyr::select(paste0("sp", 1:10))
+  # cls <- kmeans(x = sp_data, centers = 5)
+  
+  # set.seed(123)
+  # fviz_nbclust(wide_data %>% filter(sample == 0.25) %>% ungroup() %>% dplyr::select(paste0("sp", 1:10)),
+  #             kmeans, method = "wss")
+  # fviz_nbclust(wide_data %>% filter(sample == 0.25) %>% ungroup() %>% dplyr::select(paste0("sp", 1:10)),
+  #              kmeans, method = "silhouette")
+  # fviz_nbclust(wide_data %>% filter(sample == 0.25) %>% ungroup() %>% dplyr::select(paste0("sp", 1:10)),
+  #              kmeans, method = "gap_stat")
+  # 
+  calculate_clusters <- function(sample) {
+    set.seed(1)
+    cls <- kmeans(x = wide_data %>% 
+                       filter(sample == sample) %>% 
+                       ungroup() %>% 
+                       dplyr::select(paste0("sp", 1:10)), centers = 3) %>% 
+      .$cluster %>% 
+      as.numeric()
+    data.frame(value = cls, variable = "cluster", sample = sample) %>%
+      bind_cols(wide_data %>% 
+                  filter(sample == sample) %>% 
+                  ungroup() %>% 
+                  dplyr::select(c("x", "y")))    
+  }             
+
+  cls_001 <- calculate_clusters(0.1)
+  cls_025 <- calculate_clusters(0.25)
+  cls_050 <- calculate_clusters(0.5)
+  cls_075 <- calculate_clusters(0.75)
+  cls_090 <- calculate_clusters(0.9)
+  cls_100 <- calculate_clusters(1)
+  
+  cls <- bind_rows(cls_001, cls_025, cls_050, cls_075, cls_090, cls_100)
+  
+  Data <- bind_rows(Data, cls)
+
+  distributions <- Data %>% filter(variable != "cluster") %>% 
+    ggplot(aes(x=x, y=y, fill=value)) +
+    geom_raster() +
+    # scale_fill_distiller(palette="RdYlGn", na.value="royalblue") +
+    scale_fill_viridis_c(na.value="royalblue") +
+    theme(legend.position="right", aspect.ratio= 1) +
+    facet_grid(variable~sample) +
+    theme(axis.text.x=element_blank(),
+          axis.ticks.x=element_blank(),
+          axis.text.y = element_text(size = 8)) +
+    labs(x = "") 
+  
+  cluster <- Data %>% filter(variable == "cluster") %>%  
+    ggplot() +
+    geom_raster(aes(x = x, y = y, fill = as.factor(value))) +
+    scale_fill_manual("value", values = c("#88CCEE", "#CC6677", "#DDCC77", "#117733", "#332288", "#AA4499", 
+                                 "#44AA99", "#999933", "#882255", "#661100", "#6699CC", "#888888")) +
+    theme(legend.position="right", aspect.ratio= 1) +
+    facet_grid(variable~sample) +
+    theme(strip.text.x = element_blank(), 
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1, size = 8),
+          axis.text.y = element_text(size = 8)) 
+    
+  
+  library(ggplot2)
+  library(ggpubr)
+  theme_set(theme_pubr())
+ 
+  ggarrange(distributions, cluster, ncol = 1, nrow = 2, heights = c(6.2,1), align = "v") %>%
+    ggexport(filename = "./figures/spatial_figure.pdf", width = 7,5, height = 8)
+
+}

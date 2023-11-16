@@ -47,7 +47,8 @@ spcor_mapped <- tar_map(values = values,
                        tar_target(coo_to_ggplot, coo_pattern(sampled_community_spcor, sp_names, p_target, i_target, TRUE)),
                        tar_target(corr_to_ggplot, corr.extraction(hmsc_model_spcor)),
                        tar_target(corr_pattern,  coo_pattern(corr_to_ggplot, sample = p_target, i = i_target)),
-                       tar_target(procrus, procrustes.analysis(i_target, p_target, corr_pattern, artificial_data_spcor))
+                       tar_target(procrus, procrustes.analysis(i_target, p_target, corr_pattern, artificial_data_spcor)),
+                       tar_target(spat_data, spatial.prediction(p = p_target, i = i_target, env_xy_data = original_community_spcor, model = hmsc_model_spcor, sp_names = sp_names))
                        )
 
 list(
@@ -132,6 +133,11 @@ list(
  tar_target(corr_plot, rbind(sampled_corr, full_corr_pattern[,pattern_colnames], original_corr[,pattern_colnames])),
  tar_target(corr_levels, original_corr$`sp-sp` [order(original_corr$prob)]),
  tar_target(plot_pattern_corr, corr.pattern.plot(corr_plot, corr_levels)),
- tar_target(plot_pattern_corr_sign, corr.pattern.plot(corr_plot, corr_levels, TRUE))
+ tar_target(plot_pattern_corr_sign, corr.pattern.plot(corr_plot, corr_levels, TRUE)), 
+ tar_combine(combined_spat_data, spcor_mapped[["spat_data"]]),
+ tar_target(full_spat_data, spatial.prediction(p = 1, i = 1, env_xy_data = original_community_spcor, model = full_modelo_hmsc_spcor, sp_names = sp_names)),
+ tar_target(to_plot_spat_data, combined_spat_data %>% bind_rows(full_spat_data) %>% group_by(sample, variable, x, y) %>% 
+              summarise(value = mean(value))),
+ tar_target(spatial_plot, spatial.clust.plot(to_plot_spat_data))
 )
   
