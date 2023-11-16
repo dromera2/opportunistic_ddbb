@@ -37,15 +37,19 @@ vignettes/*.pdf
 *.knit.md
 
 # R Environment Variables
-.Renviron
+*/.Renviron
 
 # targets
-_targets/
+*/_targets/
 
-# Resultados
-figures/
-tables/
-diagnostics/
+# Results
+*/figures/
+*/tables/
+*/diagnostics/
 
-coo_probabilities.R
+# Data
+#*/wc2.1_30s/
+#*/soil/
+*/data/
+0033370-231002084531237.zip
 
