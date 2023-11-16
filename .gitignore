@@ -48,8 +48,8 @@ vignettes/*.pdf
 */diagnostics/
 
 # Data
-*/wc2.1_30s/
-*/soil/
-#*/data/
+#*/wc2.1_30s/
+#*/soil/
+*/data/
 0033370-231002084531237.zip
 
