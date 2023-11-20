@@ -33,11 +33,15 @@ study_area <- read_sf("./data/mask/Mask.shp")
 # 
 # get.code(myspecies)
 
+# Download this data file from: https://www.gbif.org/es/occurrence/download/0033370-231002084531237
 code <- '0033370-231002084531237'
 
+# Download data from this source: https://files.isric.org/soilgrids/former/2017-03-10/aggregated/1km/
 pH <- list.files(path = "../Public/Data/SoilGrids/1km/phh2o/", pattern = ".tif", full.names = TRUE )
 sand <- list.files(path = "../Public/Data/SoilGrids/1km/sand/", pattern = ".tif", full.names = TRUE )
-temp <- rast("./data/climate/pca3_data.tif") %>% subset("PC1") 
+
+# temp <- rast("./data/climate/pca3_data.tif") %>% subset("PC1") 
+temp <- rast("./data/climate/pca1_data.tif")
 
 samples = 100
 nchains = 2

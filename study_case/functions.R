@@ -97,6 +97,7 @@ get.climate.data <- function(study_area) {
   pca_3axis <- c(pca_prediction$PC1, pca_prediction$PC2, pca_prediction$PC3)
   
   # terra::writeRaster(pca_3axis, "./data/climate/pca3_data.tif", overwrite = TRUE)
+  # terra::writeRaster(pca_3axis %>% subset("PC1"), "./data/climate/pca1_data.tif", overwrite = TRUE)
   
   pca_3axis %>% terra::wrap()
   
