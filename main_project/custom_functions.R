@@ -2014,25 +2014,24 @@ corr.extraction <- function(model) {
   corr
 }
 
-corr.pattern.plot <- function(corr_plot, corr_levels, sign = FALSE) {
+corr.pattern.plot <- function(corr_plot, corr_levels, filename, sign = FALSE) {
   corr_plot$sample <- factor(corr_plot$sample)
   corr_plot$sample <-factor(corr_plot$sample, levels = sort(levels(corr_plot$sample), decreasing= TRUE))
   levels(corr_plot$sample)   
   
-  corr_plot$`sp-sp` <- factor(corr_plot$`sp-sp`)
-  corr_plot$`sp-sp` <-factor(corr_plot$`sp-sp`, levels = corr_levels)
-  if(sign == TRUE){
-  corr_plot$prob <- sign(corr_plot$prob)}
+  # corr_plot$`sp-sp` <- factor(corr_plot$`sp-sp`)
+  corr_plot$`sp-sp` <- factor(corr_plot$`sp-sp`, levels = corr_levels)
+  if(sign == TRUE){ corr_plot$prob <- sign(corr_plot$prob) }
   ggplot(corr_plot) + 
-    geom_raster(aes(x= `sp-sp`, y= sample, fill = prob)) +
-    scale_fill_gradientn(colors= c("#7f3b08", "#e08214", "#f5f5f5", "#8073ac", "#2d004b"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-1, 1)) +
+    geom_raster(aes(x = `sp-sp`, y = sample, fill = prob)) +
+    scale_fill_gradientn(colors= c("#7f3b08", "#e08214", "#f5f5f5", "#8073ac", "#2d004b"), values = c(0, 0.35, 0.5, 0.65, 1), limits= c(-1, 1)) +
     ylab("") + 
     xlab("") +
     scale_y_discrete(labels=c(expression(Omega), bquote(CM[O2]), bquote(CM[S90]), bquote(CM[S75]), bquote(CM[S50]), bquote(CM[S25]), bquote(CM[S10]))) +
-    geom_rect(xmin = -Inf, xmax = +Inf,   ymin = -Inf, ymax = 1.5,   color = "black", alpha = 0, linetype="dashed") +
+    geom_rect(xmin = -Inf, xmax = +Inf,   ymin = -Inf, ymax = 1.5,   color = "black", alpha = 0, linetype = "dashed") +
     theme_bw() +
     theme(legend.title= element_blank(), axis.text.x=element_text(angle = 45, hjust = 1))
-  filename <- paste0("./figures/corr_figure", if(sign){"_sign"}, ".pdf")
+  # filename <- "./figures/omegas.pdf"
   ggplot2::ggsave(filename, device = "pdf", width = 10, height = 4)
 }
 
