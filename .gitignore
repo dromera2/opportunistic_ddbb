@@ -48,7 +48,5 @@ vignettes/*.pdf
 */diagnostics/
 
 # Data
-study_case/data/wc2.1_30s/*.tif
-study_case/data/soil/*.tif
+*.tif
 0033370-231002084531237.zip
-
