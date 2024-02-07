@@ -4,7 +4,45 @@ myspecies <- c("Pinus pinaster", "Pinus nigra", "Pinus sylvestris",
                "Quercus robur","Quercus pyrenaica", "Quercus pubescens", 
                "Quercus faginea")
 
-study_area <- read_sf("./data/mask/Mask.shp")
+Forest_Europe_list <- c("Albania", "Andorra", "Austria", "Belarus", "Belgium",
+                        "Bosnia and Herzegovina", "Bulgaria", "Croatia",
+                        "Cyprus", "Czech Republic", "Denmark", "Estonia",
+                        "Finland", "France", "Georgia", "Germany", "Greece",
+                        "Holy see", "Hungary", "Iceland", "Ireland", "Italy",
+                        "Latvia", "Liechtenstein", "Lithuania", "Luxembourg",
+                        "Northen Macedonia", "Malta", "Republic of Moldova",
+                        "Monaco", "Montenegro", "Netherlands", "Norway",
+                        "Poland", "Portugal", "Romania", "Serbia", "Slovakia",
+                        "Slovenia", "Spain", "Sweden", "Switzerland", "Turkey",
+                        "Ukraine", "United Kingdom") %>%
+  countrycode(origin = "country.name", destination = "iso3c")
+
+lon_min <- -12
+
+# study_area <- read_sf("./data/mask/Mask.shp")
+
+conf <- list(Latitude = "decimalLatitude",
+             Longitude = "decimalLongitude",
+             Date_collected = "eventDate",
+             Scientific_name = "species")
+
+
+# # 
+# # comp_an <- completeness(indf, raster, recs = 10)
+# # output <- rasterize_completeness(comp_an, "c", raster)
+# 
+# 
+# 
+# ######retomar aquí
+# 
+# study_area <- rast() 
+# ext(study_area) <- c(-12, 50, 35, 72)
+# crs(study_area) <-  "+init=epsg:4326"
+# res(study_area) <- 0.041666
+# study_area_v <- study_area %>% as.polygons()
+# 
+# estimators <- read.csv2("./Estimators.CSV")
+# #####
 
 #it is not needed to run this code, the data code will be provided.
 # install.packages("usethis")
@@ -36,18 +74,24 @@ study_area <- read_sf("./data/mask/Mask.shp")
 # Download this data file from: https://www.gbif.org/es/occurrence/download/0033370-231002084531237
 code <- '0033370-231002084531237'
 
+# my_download_metadata <- occ_download_meta(code)
+# gbif_citation(my_download_metadata)
+
 # Download data from this source: https://files.isric.org/soilgrids/former/2017-03-10/aggregated/1km/
-pH <- list.files(path = "../Public/Data/SoilGrids/1km/phh2o/", pattern = ".tif", full.names = TRUE )
-sand <- list.files(path = "../Public/Data/SoilGrids/1km/sand/", pattern = ".tif", full.names = TRUE )
+pH <- list.files(path = "../../Public/Data/SoilGrids/1km/phh2o/", pattern = ".tif", full.names = TRUE )
+sand <- list.files(path = "../../Public/Data/SoilGrids/1km/sand/", pattern = ".tif", full.names = TRUE )
 
 # temp <- rast("./data/climate/pca3_data.tif") %>% subset("PC1") 
-temp <- rast("./data/climate/pca1_data.tif")
+# temp <- rast("./data/climate/pca1_data.tif")
 
-samples = 100
-nchains = 2
-nParallel = 2
-thin = 50
-transient = 80*thin
+i <- 1:10
+d_names <- c("full", "under", "over")
+
+samples <- 100
+nchains <- 2
+nParallel <- 2
+thin <- 50
+transient <- 80*thin
 
 var_names <- c(paste0("PC", 1:3), "pH", "sand")
 coord_names <- c("x", "y")
@@ -57,7 +101,3 @@ formula <- ~poly(PC1, degree = 2, raw = TRUE) +
   poly(PC3, degree = 2, raw = TRUE) +
   poly(pH, degree = 2, raw = TRUE) +
   poly(sand, degree = 2, raw = TRUE) 
-
-#We load these coarse resolution data to make lighter the spatial predictions for example purposes.
-pred_clim <- rast("./data/prediction/clim.tif")
-pred_soil <- rast("./data/prediction/soil.tif")
