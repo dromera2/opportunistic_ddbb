@@ -1,6 +1,6 @@
 grid_size <- 50 #Grid size for artificial data generation
 samples = 100 #Sample size for hmsc calibration
-nchains = 2 #number of Markov chain Montecarlo for hmsc calibration
+nchains = 4 #number of Markov chain Montecarlo for hmsc calibration
 nParallel = 2 
 thin= 100 #thinning factor for hmsc calibration
 transient = 80*thin  #warm-up value for hmsc

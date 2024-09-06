@@ -1788,7 +1788,9 @@ comparative.plot <- function(explanatory, predictive, same_sample) {
     ylab("") +
     theme_bw() 
   
-  ggplot2::ggsave("./figures/performance_figure.pdf", device = "pdf", width = 7, height = 4.5)
+  # ggplot2::ggsave("./figures/performance_figure.pdf", device = "pdf", width = 7, height = 4.5)
+  ggplot2::ggsave("./figures/performance_figure.jpg", device = "jpg", width = 7, height = 4.5)
+  
 }
 
 #Plot to draw the intercept and the slope of the beta parameters along retention percentage.
@@ -1801,7 +1803,7 @@ betas.plot <- function(combined_rmas) {
   names(complete_labels) <- c("int", "x1", "x2")
   
   ggplot(rmas, aes(x = p*100, y = value, color = name)) +
-    scale_x_reverse() +
+    # scale_x_reverse() +
     geom_jitter(width = 3, alpha = 0.3, size = 1.5) +
     geom_line(data = rmas_sum, aes(x = p*100, y = mean), size = 0.8) +
     geom_point(data = rmas_sum, aes(x = p*100, y = mean), size = 2.5) +
@@ -1814,7 +1816,9 @@ betas.plot <- function(combined_rmas) {
     ylab("") +
     theme_bw() +
     theme(legend.position="right")
-  ggplot2::ggsave("./figures/betas_figure.pdf", device = "pdf", width = 7.6, height = 2.1)
+  # ggplot2::ggsave("./figures/betas_figure.pdf", device = "pdf", width = 7.6, height = 2.1)
+  ggplot2::ggsave("./figures/betas_figure.jpg", device = "jpg", width = 7.6, height = 2.1)
+  
 }
 
 #Representation of the slope and intercept of the beta parameters, grouped by retention percentage
@@ -1840,7 +1844,9 @@ supl.betas.plot <- function(betas, rmas) {
     geom_text(aes(-0.5, -1.85, label=paste("b=", formatC(round(intercept, 2), format="f", digits=2), "; m=", formatC(round(slope, 2), format="f", digits=2), "\nRsquare=", formatC(round(Rsquare, 2), format="f", digits=2), sep=""), group=NULL), size=3, data=rmas, hjust=0) +
     geom_text(aes(-0.7, 0.6, label=paste("RMSE=", formatC(round(RMSE, 2), format="f", digits=2), sep=""), group=NULL), size=3, data=rmas, hjust=1)
   
-  ggplot2::ggsave("./figures/supl_betas_figure.pdf", device = "pdf", width = 7.5, height = 8)
+  # ggplot2::ggsave("./figures/supl_betas_figure.pdf", device = "pdf", width = 7.5, height = 8)
+  ggplot2::ggsave("./figures/supl_betas_figure.jpg", device = "jpg", width = 7.5, height = 8)
+  
 }
 
 #Correlation plot of the residuals given by the model for a retention percentage.
@@ -2002,7 +2008,9 @@ pattern.plot <- function(coo_plot, coo_levels) {
     scale_y_discrete(labels=c(bquote(CM[O2]), bquote(CM[S90]), bquote(CM[S75]), bquote(CM[S50]), bquote(CM[S25]), bquote(CM[S10]))) +
     theme_bw() +
     theme(legend.title= element_blank(), axis.text.x=element_text(angle = 45, hjust = 1))
-  ggplot2::ggsave("./figures/coo_figure.pdf", device = "pdf", width = 10, height = 4)
+  # ggplot2::ggsave("./figures/coo_figure.pdf", device = "pdf", width = 10, height = 4)
+  ggplot2::ggsave("./figures/coo_figure.jpg", device = "jpg", width = 10, height = 4)
+  
 }
 
 
@@ -2032,7 +2040,7 @@ corr.pattern.plot <- function(corr_plot, corr_levels, filename, sign = FALSE) {
     theme_bw() +
     theme(legend.title= element_blank(), axis.text.x=element_text(angle = 45, hjust = 1))
   # filename <- "./figures/omegas.pdf"
-  ggplot2::ggsave(filename, device = "pdf", width = 10, height = 4)
+  ggplot2::ggsave(filename, device = "jpg", width = 10, height = 4)
 }
 
 

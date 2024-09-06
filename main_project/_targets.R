@@ -132,7 +132,7 @@ list(
  tar_target(original_corr, coo_pattern(artificial_data_spcor$param$spCor, sample = "original", i= NA)),
  tar_target(corr_plot, rbind(sampled_corr, full_corr_pattern[,pattern_colnames], original_corr[,pattern_colnames])),
  tar_target(corr_levels, original_corr$`sp-sp` [order(original_corr$prob)]),
- tar_target(plot_pattern_corr, corr.pattern.plot(corr_plot, corr_levels, "figures/omegas.pdf")),
+ tar_target(plot_pattern_corr, corr.pattern.plot(corr_plot, corr_levels, "figures/omegas.jpg")),
  # tar_target(plot_pattern_corr_sign, corr.pattern.plot(corr_plot, "figures/omegas-sign.pdf", TRUE)), 
  tar_combine(combined_spat_data, spcor_mapped[["spat_data"]]),
  tar_target(full_spat_data, spatial.prediction(p = 1, i = 1, env_xy_data = original_community_spcor, model = full_modelo_hmsc_spcor, sp_names = sp_names)),
