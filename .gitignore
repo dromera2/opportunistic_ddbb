@@ -50,3 +50,5 @@ vignettes/*.pdf
 # Data
 *.tif
 0033370-231002084531237.zip
+*.zip
+*.pdf
