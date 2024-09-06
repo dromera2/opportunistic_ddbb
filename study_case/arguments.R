@@ -27,23 +27,6 @@ conf <- list(Latitude = "decimalLatitude",
              Scientific_name = "species")
 
 
-# # 
-# # comp_an <- completeness(indf, raster, recs = 10)
-# # output <- rasterize_completeness(comp_an, "c", raster)
-# 
-# 
-# 
-# ######retomar aquí
-# 
-# study_area <- rast() 
-# ext(study_area) <- c(-12, 50, 35, 72)
-# crs(study_area) <-  "+init=epsg:4326"
-# res(study_area) <- 0.041666
-# study_area_v <- study_area %>% as.polygons()
-# 
-# estimators <- read.csv2("./Estimators.CSV")
-# #####
-
 #it is not needed to run this code, the data code will be provided.
 # install.packages("usethis")
 # usethis::edit_r_environ()
@@ -81,14 +64,11 @@ code <- '0033370-231002084531237'
 pH <- list.files(path = "../../Public/Data/SoilGrids/1km/phh2o/", pattern = ".tif", full.names = TRUE )
 sand <- list.files(path = "../../Public/Data/SoilGrids/1km/sand/", pattern = ".tif", full.names = TRUE )
 
-# temp <- rast("./data/climate/pca3_data.tif") %>% subset("PC1") 
-# temp <- rast("./data/climate/pca1_data.tif")
-
 i <- 1:10
 d_names <- c("full", "under", "over")
 
 samples <- 100
-nchains <- 2
+nchains <- 4
 nParallel <- 2
 thin <- 50
 transient <- 80*thin

@@ -7,8 +7,6 @@ clean.coords <- function(myspecies_coords) {
     filter(!is.na(decimalLatitude)) %>% 
     mutate(countryCode = replace(countryCode, countryCode == "", "SK"))
   
-  
-  
   #convert country code from ISO2c to ISO3c
   myspecies_coords$countryCode <-  countrycode(myspecies_coords$countryCode, 
                                                origin =  'iso2c',
@@ -20,11 +18,16 @@ clean.coords <- function(myspecies_coords) {
                              lat = "decimalLatitude",
                              # countries = "countryCode",
                              species = "species",
-                             tests = c("capitals", "centroids", "equal","gbif",
+                             tests = c("capitals", 
+                                       "centroids", 
+                                       "equal",
+                                       "gbif",
                                        "institutions",
                                        # "outliers", 
-                                       "seas", 
-                                       "zeros", "urban", "validity", 
+                                       # "seas",
+                                       "zeros", 
+                                       # "urban",
+                                       "validity", 
                                        "duplicates")) # most test are on by default
   
   #Exclude problematic records
@@ -69,18 +72,22 @@ filter.country <- function(dat_cl, countries){
 }
 
 get.gbif.data <- function(code, countries, minlon) {
-  
+  # code <- code
+  # countries <- Forest_Europe_list
+  # minlon <- lon_min
   occurrences <- occ_download_get(code) %>%
     occ_download_import()
   
-  filtered_coordinates <- clean.coords(occurrences)
-  filtered_precision <- low.precision(filtered_coordinates)
+  filtered_longlat <- long_lat.cut(occurrences, minlon)
+  filtered_precision <- low.precision(filtered_longlat)
   filtered_counts <- individual.count(filtered_precision)
   filtered_age <- record.age(filtered_counts)
-  filtered_countries <- filter.country(filtered_age, countries)
-  filtered_longlat <- long_lat.cut(filtered_countries, minlon)
   
-  filtered_longlat
+  filtered_coordinates <- clean.coords(filtered_age)
+
+  filtered_countries <- filter.country(filtered_coordinates, countries)
+  
+  filtered_countries
   
 }
 
@@ -262,7 +269,7 @@ filter.data <- function(type, data, comp_rast, comp_data, th){
   return(data)
 }
 
-prepare.data <- function(type, occ_data, comp_rast, comp_data, th, clim_data, soil_data, cut, sample = NULL, i, blocks) {
+prepare.data <- function(type, occ_data, comp_rast, comp_data, th, clim_data, soil_data, cut, sample = NULL, i, blocks, species_list) {
   
   occ_data$partition <- blocks$partition
   
@@ -288,7 +295,8 @@ prepare.data <- function(type, occ_data, comp_rast, comp_data, th, clim_data, so
   
   soil_data <- soil_data %>% unwrap() %>% terra::extract(y = points$pixelId)
   
-  model_data <- bind_cols(coords, clim_data, soil_data, points) %>% dplyr::select(-pixelId) %>% na.omit()
+  model_data <- bind_cols(coords, clim_data, soil_data, points %>% relocate(c("pixelId", "partition", species_list))) %>% 
+    dplyr::select(-pixelId) %>% na.omit()
   
     if(cut == TRUE){
     set.seed(i)  
@@ -586,24 +594,30 @@ plot.betas <- function(data){
   
   data %>% ggplot() +
     geom_tile(aes(x = factor(type, levels = c("under", "full", "over")), y = species, fill = beta)) +
-    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-1, 1)) +
+    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), 
+                         values = c(0, 0.45, 0.5, 0.55, 1), 
+                         limits= c(-4.5, 4.5)) +
     facet_wrap(.~factor(variable, levels = c("PC1_1", "PC1_2", "PC2_1", "PC2_2", "PC3_1", "PC3_2",
                                              "sand_1", "sand_2", "pH_1", "pH_2"))) +
     xlab("") +
     theme_bw()
   
-  ggsave("./figures/betas.pdf", width = 9, height = 6)
+  # ggsave("./figures/betas.pdf", width = 9, height = 6)
+  ggsave("./figures/betas.jpg", width = 9, height = 6)
+  
   
   data %>% 
     filter(variable %in% c("PC1_1", "PC1_2", "PC2_1", "PC2_2", "sand_1", "pH_1")) %>% 
     ggplot() +
     geom_tile(aes(x = factor(type, levels = c("under", "full", "over")), y = species, fill = beta)) +
-    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-1, 1)) +
+    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-4.5, 4.5)) +
     facet_wrap(.~factor(variable, levels = c("PC1_1", "PC1_2", "PC2_1", "PC2_2", "sand_1", "pH_1"))) +
     xlab("") +
     theme_bw()
   
-  ggsave("./figures/subset_betas.pdf", width = 9, height = 6)
+  # ggsave("./figures/subset_betas.pdf", width = 9, height = 6)
+  ggsave("./figures/subset_betas.jpg", width = 9, height = 6)
+  
   
   return(data)
 }
@@ -625,7 +639,9 @@ plot.coords.eval <- function(eval) {
     facet_wrap(~variable) +
     theme(legend.position = "none")
   
-  ggsave("./figures/comm_eval.pdf", device = "pdf", width = 7, height = 2.5)
+  # ggsave("./figures/comm_eval.pdf", device = "pdf", width = 7, height = 2.5)
+  ggsave("./figures/comm_eval.jpg", device = "jpg", width = 7, height = 2.5)
+  
   
   eval
 }
@@ -656,7 +672,7 @@ composite <- function(betas, omegas, spatial){
     filter(variable %in% c("PC1_1", "PC1_2", "PC2_1", "PC2_2", "sand_1", "pH_1")) %>% 
     ggplot() +
     geom_tile(aes(x = factor(type, levels = c("under", "full", "over")), y = species, fill = beta)) +
-    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-1, 1)) +
+    scale_fill_gradientn(colors= c("#8e0152", "#c51b7d", "#f5f5f5", "#4d9221", "#276419"), values = c(0, 0.4, 0.5, 0.6, 1), limits= c(-4.5, 4.5)) +
     facet_wrap(.~factor(variable, levels = c("PC1_1", "PC1_2", "PC2_1", "PC2_2", "sand_1", "pH_1"))) +
     xlab("") +
     ylab("") +
@@ -675,10 +691,11 @@ composite <- function(betas, omegas, spatial){
   spatial_plot <- spatial %>% filter(variable == "Quercus suber" |
                                         variable == "Pinus sylvestris" |
                                         variable == "Pinus pinea") %>% 
+    mutate(th_pred = th_pred %>% factor(levels = c(0, 1))) %>% 
     ggplot(aes(x = x, y = y, fill = th_pred, col = th_pred)) +
     geom_tile() +
-    scale_fill_viridis_c() +
-    scale_colour_viridis_c() +
+    scale_fill_viridis_d(na.value = "gray") +
+    scale_colour_viridis_d(na.value = "gray") +
     theme(legend.position="bottom", aspect.ratio= 1) +
     facet_grid(factor(dataset, levels = c("under", "full", "over")) ~ variable) +
     theme_bw() +
